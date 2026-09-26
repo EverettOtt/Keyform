@@ -1,15 +1,83 @@
 import { midiToFreq } from './music'
 
 let ctx: AudioContext | null = null
+let unlocked = false
+let silentEl: HTMLAudioElement | null = null
+
+/** Near-silent 1ms WAV — HTML5 playback routes iOS audio past the mute switch. */
+const SILENT_WAV =
+  'data:audio/wav;base64,UklGRiQAAABXQVZFZm10IBAAAAABAAEARKwAAIhYAQACABAAZGF0YQAAAAA='
 
 function getContext() {
   if (typeof window === 'undefined') return null
   if (!ctx) {
-    const Ctor = window.AudioContext ?? (window as unknown as { webkitAudioContext: typeof AudioContext }).webkitAudioContext
+    const Ctor =
+      window.AudioContext ??
+      (window as unknown as { webkitAudioContext: typeof AudioContext }).webkitAudioContext
     ctx = new Ctor()
   }
-  if (ctx.state === 'suspended') void ctx.resume()
   return ctx
+}
+
+/**
+ * Unlock mobile (esp. iOS) audio so Web Audio tones play in silent mode.
+ * Fully non-blocking — never returns a Promise. Safe (and required) to call
+ * synchronously from click/touch handlers; do not `await` this.
+ */
+export function unlockMobileAudio() {
+  if (typeof window === 'undefined' || typeof navigator === 'undefined') return
+
+  try {
+    const session = (navigator as Navigator & { audioSession?: { type: string } }).audioSession
+    if (session) {
+      try {
+        session.type = 'playback'
+      } catch {
+        // Unsupported assignment — ignore
+      }
+    }
+  } catch {
+    // ignore
+  }
+
+  if (!unlocked) {
+    if (!silentEl) {
+      silentEl = new Audio(SILENT_WAV)
+      silentEl.setAttribute('playsinline', '')
+      silentEl.setAttribute('webkit-playsinline', '')
+      silentEl.volume = 0.01
+    }
+
+    try {
+      silentEl.currentTime = 0
+    } catch {
+      // ignore seek errors
+    }
+
+    // Kick off playback inside the user gesture; never await — rejections must
+    // not stall React event handlers. Retry on the next gesture if this fails.
+    void silentEl.play().then(
+      () => {
+        try {
+          silentEl?.pause()
+        } catch {
+          // ignore
+        }
+        unlocked = true
+      },
+      () => {},
+    )
+  }
+
+  const audio = getContext()
+  if (audio?.state === 'suspended') {
+    void audio.resume().catch(() => {})
+  }
+}
+
+function ensureContext() {
+  unlockMobileAudio()
+  return getContext()
 }
 
 const PARTIALS: [number, number][] = [
@@ -21,7 +89,7 @@ const PARTIALS: [number, number][] = [
 ]
 
 export function playNote(midi: number, duration = 1.8, delay = 0) {
-  const audio = getContext()
+  const audio = ensureContext()
   if (!audio) return
   const start = audio.currentTime + delay + 0.02
   const freq = midiToFreq(midi)
@@ -52,5 +120,6 @@ export function playNote(midi: number, duration = 1.8, delay = 0) {
 }
 
 export function playSequence(midis: number[], gap = 0.9) {
+  unlockMobileAudio()
   midis.forEach((m, i) => playNote(m, 1.4, i * gap))
 }
