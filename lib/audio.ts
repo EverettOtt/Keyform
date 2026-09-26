@@ -1,15 +1,72 @@
 import { midiToFreq } from './music'
 
 let ctx: AudioContext | null = null
+let unlocked = false
+let silentEl: HTMLAudioElement | null = null
+
+/** Near-silent 1ms WAV — HTML5 playback routes iOS audio past the mute switch. */
+const SILENT_WAV =
+  'data:audio/wav;base64,UklGRiQAAABXQVZFZm10IBAAAAABAAEARKwAAIhYAQACABAAZGF0YQAAAAA='
 
 function getContext() {
   if (typeof window === 'undefined') return null
   if (!ctx) {
-    const Ctor = window.AudioContext ?? (window as unknown as { webkitAudioContext: typeof AudioContext }).webkitAudioContext
+    const Ctor =
+      window.AudioContext ??
+      (window as unknown as { webkitAudioContext: typeof AudioContext }).webkitAudioContext
     ctx = new Ctor()
   }
-  if (ctx.state === 'suspended') void ctx.resume()
   return ctx
+}
+
+/**
+ * Unlock mobile (esp. iOS) audio so Web Audio tones play in silent mode.
+ * Must run inside a user-gesture handler before synth playback.
+ */
+export async function unlockMobileAudio() {
+  if (typeof window === 'undefined' || typeof navigator === 'undefined') return
+
+  const session = (navigator as Navigator & { audioSession?: { type: string } }).audioSession
+  if (session) {
+    try {
+      session.type = 'playback'
+    } catch {
+      // Unsupported assignment — ignore
+    }
+  }
+
+  if (!silentEl) {
+    silentEl = new Audio(SILENT_WAV)
+    silentEl.setAttribute('playsinline', '')
+    silentEl.setAttribute('webkit-playsinline', '')
+    silentEl.volume = 0.01
+  }
+
+  try {
+    silentEl.currentTime = 0
+    await silentEl.play()
+    silentEl.pause()
+  } catch {
+    // Gesture may already be consumed — still try AudioContext resume
+  }
+
+  const audio = getContext()
+  if (audio?.state === 'suspended') {
+    try {
+      await audio.resume()
+    } catch {
+      // ignore
+    }
+  }
+
+  unlocked = true
+}
+
+function ensureUnlocked() {
+  if (!unlocked) void unlockMobileAudio()
+  const audio = getContext()
+  if (audio?.state === 'suspended') void audio.resume()
+  return audio
 }
 
 const PARTIALS: [number, number][] = [
@@ -21,7 +78,7 @@ const PARTIALS: [number, number][] = [
 ]
 
 export function playNote(midi: number, duration = 1.8, delay = 0) {
-  const audio = getContext()
+  const audio = ensureUnlocked()
   if (!audio) return
   const start = audio.currentTime + delay + 0.02
   const freq = midiToFreq(midi)
@@ -52,5 +109,6 @@ export function playNote(midi: number, duration = 1.8, delay = 0) {
 }
 
 export function playSequence(midis: number[], gap = 0.9) {
+  ensureUnlocked()
   midis.forEach((m, i) => playNote(m, 1.4, i * gap))
 }
