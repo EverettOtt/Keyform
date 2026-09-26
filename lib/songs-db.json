@@ -1,0 +1,72 @@
+[
+  {
+    "title": "Wonderwall",
+    "artist": "Oasis",
+    "key": "F# Minor",
+    "lowNote": "F#3",
+    "highNote": "A4"
+  },
+  {
+    "title": "Riptide",
+    "artist": "Vance Joy",
+    "key": "A Minor",
+    "lowNote": "E3",
+    "highNote": "A4"
+  },
+  {
+    "title": "Hallelujah",
+    "artist": "Leonard Cohen",
+    "key": "C Major",
+    "lowNote": "G2",
+    "highNote": "G4"
+  },
+  {
+    "title": "Jolene",
+    "artist": "Dolly Parton",
+    "key": "C# Minor",
+    "lowNote": "G#3",
+    "highNote": "C#5"
+  },
+  {
+    "title": "Let It Be",
+    "artist": "The Beatles",
+    "key": "C Major",
+    "lowNote": "G2",
+    "highNote": "C4"
+  },
+  {
+    "title": "Perfect",
+    "artist": "Ed Sheeran",
+    "key": "Ab Major",
+    "lowNote": "Eb3",
+    "highNote": "Ab4"
+  },
+  {
+    "title": "Horse with No Name",
+    "artist": "America",
+    "key": "E Minor",
+    "lowNote": "E3",
+    "highNote": "G4"
+  },
+  {
+    "title": "Wish You Were Here",
+    "artist": "Pink Floyd",
+    "key": "G Major",
+    "lowNote": "B2",
+    "highNote": "G4"
+  },
+  {
+    "title": "Hey There Delilah",
+    "artist": "Plain White T's",
+    "key": "D Major",
+    "lowNote": "A2",
+    "highNote": "D4"
+  },
+  {
+    "title": "Creep",
+    "artist": "Radiohead",
+    "key": "G Major",
+    "lowNote": "G3",
+    "highNote": "C5"
+  }
+]
