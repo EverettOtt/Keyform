@@ -17,7 +17,7 @@ import {
   X,
 } from 'lucide-react'
 import { Button } from '@/components/ui/button'
-import { playSequence, unlockMobileAudio } from '@/lib/audio'
+import { playSequence } from '@/lib/audio'
 import { fetchSongKey } from '@/lib/getsongkey'
 import { artwork, type ItunesTrack } from '@/lib/itunes'
 import {
@@ -366,10 +366,7 @@ export function MatchDashboard({
                 type="button"
                 aria-label="Hear melody range"
                 title="Hear melody range"
-                onClick={async () => {
-                  await unlockMobileAudio()
-                  playSequence([fit.sung.low, fit.sung.high])
-                }}
+                onClick={() => playSequence([fit.sung.low, fit.sung.high])}
                 className="inline-flex size-8 items-center justify-center rounded-lg text-cyan-400 transition-colors hover:bg-cyan-400/10 hover:text-cyan-300 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-cyan-400"
               >
                 <Volume2 className="size-4" aria-hidden="true" />

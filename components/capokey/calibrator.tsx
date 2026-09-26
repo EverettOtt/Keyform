@@ -2,7 +2,7 @@
 
 import { useEffect, useId, useState } from 'react'
 import { ArrowDown, ArrowLeft, ArrowRight, ArrowUp, Check, Mars, Play, TriangleAlert, Venus, Volume2, X } from 'lucide-react'
-import { playNote, unlockMobileAudio } from '@/lib/audio'
+import { playNote } from '@/lib/audio'
 import {
   MAX_MIDI,
   MIN_MIDI,
@@ -212,8 +212,7 @@ export function Calibrator({ onComplete, onStageChange }: CalibratorProps) {
   const category = part ?? VOICE_CATEGORIES.find((c) => c.id === voice) ?? null
   const label = category?.label ?? 'Singer'
 
-  async function start() {
-    await unlockMobileAudio()
+  function start() {
     const next = initialTest(startingNoteFor(voice, part))
     setTest(next)
     onStageChange?.('testing')
@@ -225,9 +224,8 @@ export function Calibrator({ onComplete, onStageChange }: CalibratorProps) {
     onStageChange?.('setup')
   }
 
-  async function respond(response: Response) {
+  function respond(response: Response) {
     if (!test) return
-    await unlockMobileAudio()
     const next = transition(test, response)
     if (next.phase === 'complete' && next.lowestNote !== null && next.highestNote !== null) {
       const range = { low: next.lowestNote, high: next.highestNote }
@@ -528,8 +526,7 @@ function TestStep({
     hasComfort &&
     (comfortLow! > fullLow! || comfortHigh! < fullHigh!)
 
-  async function play() {
-    await unlockMobileAudio()
+  function play() {
     playNote(test.currentNote)
     setPlayed(test.currentNote)
   }
