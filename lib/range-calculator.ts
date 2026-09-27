@@ -77,7 +77,7 @@ export function getMelodyRangeForKey(key: string): MelodyRangeEstimate {
   }
 }
 
-/** Look up a verified song, or estimate range from the API-returned key. */
+/** Look up a verified melody range, or estimate range from the crowdsourced key. */
 export function resolveSongData(
   songTitle: string,
   artist: string,
@@ -85,23 +85,27 @@ export function resolveSongData(
 ): ResolvedSongData {
   const want = normalizeTitle(songTitle)
   const hit = (songsDb as SongDbEntry[]).find((s) => normalizeTitle(s.title) === want)
+  const crowdKey = apiReturnedKey
+  const crowdParsed = parseKey(crowdKey)
+  const dbParsed = hit ? parseKey(hit.key) : null
 
-  if (hit) {
+  // Keep the crowdsourced key authoritative. Only reuse DB range notes when keys match.
+  if (hit && crowdParsed && dbParsed && crowdParsed.tonic === dbParsed.tonic && crowdParsed.mode === dbParsed.mode) {
     return {
       title: hit.title,
       artist: hit.artist,
-      key: hit.key,
+      key: crowdKey,
       lowNote: hit.lowNote,
       highNote: hit.highNote,
       isEstimated: false,
     }
   }
 
-  const estimated = getMelodyRangeForKey(apiReturnedKey)
+  const estimated = getMelodyRangeForKey(crowdKey)
   return {
     title: songTitle,
     artist,
-    key: apiReturnedKey,
+    key: crowdKey,
     lowNote: estimated.lowNote,
     highNote: estimated.highNote,
     isEstimated: true,
