@@ -16,7 +16,7 @@ export function getUGAffiliateLink(artist: string, song: string): string {
 }
 
 /**
- * Semitone shift from original → target, normalized into Ultimate Guitar's
+ * Shift from original → play-in key, normalized into Ultimate Guitar's
  * typical transpose UI range of -6…+6.
  */
 export function ugTransposeShift(original: SongKey, target: SongKey): number {
@@ -42,21 +42,21 @@ export function getUgTransposeGuide(original: SongKey, target: SongKey): UgTrans
   if (shift === 0) {
     return {
       shift,
-      headline: 'No transposition needed (Play in Original Key)',
-      badge: 'UG Transpose: 0 semitones',
-      steps: 'Open the chord sheet below — no Transpose change is needed.',
+      headline: 'Play in the original key',
+      badge: 'No transpose needed',
+      steps: 'Open the chord sheet below — leave Transpose at 0.',
       capoTip: null,
     }
   }
 
   return {
     shift,
-    headline: `Set Transpose to ${signed} on Ultimate Guitar`,
-    badge: `UG Transpose: ${signed} semitone${Math.abs(shift) === 1 ? '' : 's'}`,
-    steps: `Open the chord sheet below, tap Transpose at the bottom of the page, and set it to ${signed}.`,
+    headline: `Set Transpose to ${signed}`,
+    badge: `Transpose ${signed}`,
+    steps: `Open the chord sheet, tap Transpose at the bottom, and set it to ${signed}.`,
     capoTip:
       shift > 0
-        ? `Or put Capo on Fret ${shift} and play in key of ${formatKeyLabel(original)}`
+        ? `Or capo fret ${shift} and play in ${formatKeyLabel(original)}`
         : null,
   }
 }

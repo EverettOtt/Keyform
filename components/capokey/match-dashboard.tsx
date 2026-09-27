@@ -309,14 +309,6 @@ export function MatchDashboard({
   const fit = evaluateFit(range, melodyAtPlayKey, false, 0)
   const suggestion = findBestVocalFit(range, melodyAtOriginal)
   const suggestedKey = hasKey ? transposeKey(originalKey, suggestion.shift) : selectedKey
-  // Before the user touches play-in / calibrate, show the vocal-best key on the UG card.
-  const recommendedKey =
-    hasKey &&
-    !voiceCalibrated &&
-    selectedKey.tonic === originalKey.tonic &&
-    selectedKey.mode === originalKey.mode
-      ? suggestedKey
-      : selectedKey
   const severityInfo = fitSeverity(comfortable, range, fit.sung)
 
   return (
@@ -487,11 +479,7 @@ export function MatchDashboard({
             />
           </div>
 
-          <GuitarChordsCard
-            originalKey={originalKey}
-            recommendedKey={recommendedKey}
-            ugLink={ugLink}
-          />
+          <GuitarChordsCard originalKey={originalKey} playInKey={selectedKey} ugLink={ugLink} />
 
           <p className="flex items-start gap-2 px-1 text-xs leading-relaxed text-muted-foreground">
             <Info className="mt-0.5 size-3.5 shrink-0" aria-hidden="true" />
@@ -659,14 +647,14 @@ function CompatibilityBadge({
 
 function GuitarChordsCard({
   originalKey,
-  recommendedKey,
+  playInKey,
   ugLink,
 }: {
   originalKey: SongKey
-  recommendedKey: SongKey
+  playInKey: SongKey
   ugLink: string
 }) {
-  const guide = getUgTransposeGuide(originalKey, recommendedKey)
+  const guide = getUgTransposeGuide(originalKey, playInKey)
 
   return (
     <div className={cn(glass, 'flex w-full min-w-0 flex-col gap-4 overflow-hidden p-4 sm:p-5')}>
