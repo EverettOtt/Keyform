@@ -664,11 +664,8 @@ function GuitarChordsCard({
       </div>
 
       <div className="rounded-2xl border border-primary/25 bg-primary/10 px-4 py-4">
-        <p className="inline-flex rounded-full border border-primary/30 bg-primary/15 px-2.5 py-1 text-xs font-semibold text-primary">
-          {guide.badge}
-        </p>
-        <p className="mt-3 text-base font-semibold text-primary sm:text-lg">{guide.headline}</p>
-        <p className="mt-2 text-sm leading-relaxed text-foreground/85">{guide.steps}</p>
+        <p className="text-base font-semibold text-primary sm:text-lg">{guide.title}</p>
+        <p className="mt-2 text-sm leading-relaxed text-foreground/85">{guide.detail}</p>
         {guide.capoTip && <p className="mt-3 text-sm font-medium text-foreground/90">{guide.capoTip}</p>}
       </div>
 

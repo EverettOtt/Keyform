@@ -28,9 +28,9 @@ export function ugTransposeShift(original: SongKey, target: SongKey): number {
 
 export type UgTransposeGuide = {
   shift: number
-  headline: string
-  badge: string
-  steps: string
+  /** Single primary line — the only place the shift amount appears. */
+  title: string
+  detail: string
   capoTip: string | null
 }
 
@@ -42,21 +42,16 @@ export function getUgTransposeGuide(original: SongKey, target: SongKey): UgTrans
   if (shift === 0) {
     return {
       shift,
-      headline: 'Play in the original key',
-      badge: 'No transpose needed',
-      steps: 'Open the chord sheet below — leave Transpose at 0.',
+      title: 'Leave Transpose at 0',
+      detail: 'Open the chord sheet and play in the original key.',
       capoTip: null,
     }
   }
 
   return {
     shift,
-    headline: `Set Transpose to ${signed}`,
-    badge: `Transpose ${signed}`,
-    steps: `Open the chord sheet, tap Transpose at the bottom, and set it to ${signed}.`,
-    capoTip:
-      shift > 0
-        ? `Or capo fret ${shift} and play in ${formatKeyLabel(original)}`
-        : null,
+    title: `Set Transpose to ${signed}`,
+    detail: 'Open the chord sheet and use the Transpose control at the bottom.',
+    capoTip: shift > 0 ? `Or capo fret ${shift} and play in ${formatKeyLabel(original)}` : null,
   }
 }
