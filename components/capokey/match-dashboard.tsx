@@ -241,17 +241,16 @@ export function MatchDashboard({
   }
 
   function toggleSaveSong() {
-    if (!originalKey) return
     if (saved) {
       removeSavedSong(track.trackId)
       setSaved(false)
     } else {
-      const primaryCapo = capoOptions(selectedKey)[0]
+      const primaryCapo = originalKey ? capoOptions(selectedKey)[0] : null
       upsertSavedSong({
         songId: track.trackId,
         title: track.trackName,
         artist: track.artistName,
-        playInKey: formatKeyLabel(selectedKey),
+        playInKey: originalKey ? formatKeyLabel(selectedKey) : 'Not set',
         octaveShift,
         capoFret: primaryCapo?.fret ?? 0,
         voiceCalibrated,
@@ -352,14 +351,12 @@ export function MatchDashboard({
               type="button"
               aria-label={saved ? 'Remove from Songbook' : 'Save to Songbook'}
               title={saved ? 'Remove from Songbook' : 'Save to Songbook'}
-              disabled={!hasKey}
               onClick={toggleSaveSong}
               className={cn(
                 'inline-flex shrink-0 items-center gap-1.5 rounded-xl border px-2.5 py-2 text-xs font-medium transition-colors focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-amber-400',
                 saved
                   ? 'border-amber-400/40 bg-amber-400/15 text-amber-300 hover:bg-amber-400/25'
                   : 'border-white/10 bg-white/[0.04] text-muted-foreground hover:border-amber-400/30 hover:bg-amber-400/10 hover:text-amber-300',
-                !hasKey && 'pointer-events-none opacity-40',
               )}
             >
               <Star className="size-4" aria-hidden="true" fill={saved ? 'currentColor' : 'none'} />
