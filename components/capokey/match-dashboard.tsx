@@ -479,7 +479,12 @@ export function MatchDashboard({
             />
           </div>
 
-          <GuitarChordsCard originalKey={originalKey} playInKey={selectedKey} ugLink={ugLink} />
+          <GuitarChordsCard
+            originalKey={originalKey}
+            playInKey={selectedKey}
+            octaveShift={octaveShift}
+            ugLink={ugLink}
+          />
 
           <p className="flex items-start gap-2 px-1 text-xs leading-relaxed text-muted-foreground">
             <Info className="mt-0.5 size-3.5 shrink-0" aria-hidden="true" />
@@ -648,13 +653,25 @@ function CompatibilityBadge({
 function GuitarChordsCard({
   originalKey,
   playInKey,
+  octaveShift,
   ugLink,
 }: {
   originalKey: SongKey
   playInKey: SongKey
+  octaveShift: number
   ugLink: string
 }) {
   const guide = getUgTransposeGuide(originalKey, playInKey)
+  const octaveTip =
+    octaveShift === -1
+      ? 'Sing down one octave.'
+      : octaveShift === -2
+        ? 'Sing down two octaves.'
+        : octaveShift === 1
+          ? 'Sing up one octave.'
+          : octaveShift === 2
+            ? 'Sing up two octaves.'
+            : null
 
   return (
     <div className={cn(glass, 'flex w-full min-w-0 flex-col gap-4 overflow-hidden p-4 sm:p-5')}>
@@ -667,6 +684,7 @@ function GuitarChordsCard({
         <p className="text-base font-semibold text-primary sm:text-lg">{guide.title}</p>
         <p className="mt-2 text-sm leading-relaxed text-foreground/85">{guide.detail}</p>
         {guide.capoTip && <p className="mt-3 text-sm font-medium text-foreground/90">{guide.capoTip}</p>}
+        {octaveTip && <p className="mt-3 text-sm font-medium text-amber-200/95">{octaveTip}</p>}
       </div>
 
       <a
