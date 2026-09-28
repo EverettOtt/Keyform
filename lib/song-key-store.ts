@@ -11,8 +11,10 @@ type KeyRecord = {
 }
 
 const KEY_PREFIX = 'songkey:'
+const UG_TAB_PREFIX = 'ugtab:'
 const FALLBACK_DIR = path.join(process.cwd(), '.data')
 const FALLBACK_FILE = path.join(FALLBACK_DIR, 'song-keys.json')
+const UG_TAB_FALLBACK_FILE = path.join(FALLBACK_DIR, 'ug-tabs.json')
 
 function redisCredentials() {
   const url = process.env.UPSTASH_REDIS_REST_URL || process.env.KV_REST_API_URL
@@ -95,4 +97,56 @@ export async function setStoredKey(
   store[slug] = next
   writeFallbackStore(store)
   return next
+}
+
+function readUgTabFallbackStore(): Record<string, string> {
+  try {
+    if (!existsSync(UG_TAB_FALLBACK_FILE)) return {}
+    const raw = readFileSync(UG_TAB_FALLBACK_FILE, 'utf8')
+    const parsed = JSON.parse(raw) as Record<string, string>
+    return parsed && typeof parsed === 'object' ? parsed : {}
+  } catch {
+    return {}
+  }
+}
+
+function writeUgTabFallbackStore(store: Record<string, string>) {
+  if (!existsSync(FALLBACK_DIR)) mkdirSync(FALLBACK_DIR, { recursive: true })
+  writeFileSync(UG_TAB_FALLBACK_FILE, JSON.stringify(store, null, 2), 'utf8')
+}
+
+/** Cached Ultimate Guitar chords tab URL for a song slug. */
+export async function getCachedUgTabUrl(slug: string): Promise<string | null> {
+  if (!slug || !slug.includes(':')) return null
+
+  const redis = getRedis()
+  if (redis) {
+    try {
+      const hit = await redis.get<string>(`${UG_TAB_PREFIX}${slug}`)
+      if (typeof hit === 'string' && hit.includes('tabs.ultimate-guitar.com/tab/')) return hit
+    } catch {
+      /* fall through */
+    }
+  }
+
+  const local = readUgTabFallbackStore()[slug]
+  return typeof local === 'string' && local.includes('/tab/') ? local : null
+}
+
+export async function setCachedUgTabUrl(slug: string, tabUrl: string): Promise<void> {
+  if (!slug || !tabUrl.includes('tabs.ultimate-guitar.com/tab/')) return
+
+  const redis = getRedis()
+  if (redis) {
+    try {
+      await redis.set(`${UG_TAB_PREFIX}${slug}`, tabUrl)
+      return
+    } catch {
+      /* fall through */
+    }
+  }
+
+  const store = readUgTabFallbackStore()
+  store[slug] = tabUrl
+  writeUgTabFallbackStore(store)
 }

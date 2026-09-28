@@ -1,4 +1,8 @@
-import { getUgSearchUrl, resolveUgChordsTabUrl } from '@/lib/ultimate-guitar'
+import { getUgSearchUrl } from '@/lib/ultimate-guitar'
+import { resolveUgChordsTabUrl } from '@/lib/ultimate-guitar-resolve'
+
+/** Allow Jina fallback when Ultimate Guitar blocks Vercel IPs. */
+export const maxDuration = 60
 
 /**
  * GET /api/ug-tab?artist=...&title=...

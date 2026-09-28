@@ -3,6 +3,9 @@ import { lookupSongKey } from '@/lib/song-key-lookup'
 import { getStoredKey, setStoredKey } from '@/lib/song-key-store'
 import { songSlug } from '@/lib/song-slug'
 
+/** Allow Ultimate Guitar / Jina fallbacks on cold Redis misses. */
+export const maxDuration = 60
+
 /**
  * Global song keys (crowdsourced + auto-populated baseline).
  * Persistence: `@upstash/redis` via UPSTASH_REDIS_REST_URL / UPSTASH_REDIS_REST_TOKEN

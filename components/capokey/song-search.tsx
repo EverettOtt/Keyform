@@ -3,7 +3,7 @@
 import { useEffect, useState } from 'react'
 import useSWR from 'swr'
 import { ChevronRight, Loader2, Music2, Search } from 'lucide-react'
-import { artwork, fetchTracks, searchUrl, type ItunesTrack } from '@/lib/itunes'
+import { artwork, type ItunesTrack } from '@/lib/itunes'
 import type { VocalRange } from '@/lib/music'
 import { cn } from '@/lib/utils'
 
@@ -36,11 +36,19 @@ function normalize(s: string) {
   return s.toLowerCase().replace(/[^a-z0-9]+/g, ' ').trim()
 }
 
+async function fetchSearchResults(term: string): Promise<ItunesTrack[]> {
+  const res = await fetch(`/api/search?q=${encodeURIComponent(term)}`)
+  if (!res.ok) throw new Error('Search failed')
+  const data = (await res.json()) as { results?: ItunesTrack[]; error?: string }
+  if (!Array.isArray(data.results)) throw new Error(data.error || 'Search failed')
+  return data.results
+}
+
 async function fetchPopularTracks(): Promise<ItunesTrack[]> {
   const tracks = await Promise.all(
     POPULAR_SONGS.map(async ({ title, artist }) => {
       try {
-        const results = await fetchTracks(searchUrl(`${title} ${artist}`))
+        const results = await fetchSearchResults(`${title} ${artist}`)
         const wantTitle = normalize(title)
         const wantArtist = normalize(artist)
         const match =
@@ -71,7 +79,7 @@ export function SongSearch({ selectedId, onSelect }: SongSearchProps) {
 
   const searching = term.length >= 2
 
-  const { data, error, isLoading } = useSWR(searching ? searchUrl(term) : null, fetchTracks, {
+  const { data, error, isLoading } = useSWR(searching ? `search:${term}` : null, () => fetchSearchResults(term), {
     keepPreviousData: true,
     revalidateOnFocus: false,
   })
@@ -91,7 +99,7 @@ export function SongSearch({ selectedId, onSelect }: SongSearchProps) {
         <h2 id="search-heading" className="text-xl font-semibold tracking-tight sm:text-3xl">
           Any song. Any key.
         </h2>
-        <p className="mt-1 text-sm text-muted-foreground">Live results from the iTunes catalog.</p>
+        <p className="mt-1 text-sm text-muted-foreground">Search any song to match it to your voice.</p>
       </div>
 
       <form
@@ -157,7 +165,7 @@ export function SongSearch({ selectedId, onSelect }: SongSearchProps) {
         </div>
       ) : error ? (
         <p className="rounded-2xl border border-danger/30 bg-danger/10 p-4 text-sm text-danger" role="alert">
-          {"Couldn't reach the iTunes catalog. Check your connection and try again."}
+          {"Couldn't reach the song catalog. Check your connection and try again."}
         </p>
       ) : data && data.length === 0 ? (
         <p className="rounded-2xl border border-white/10 p-6 text-center text-sm text-muted-foreground">

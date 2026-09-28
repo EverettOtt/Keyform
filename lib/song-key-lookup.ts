@@ -1,5 +1,5 @@
 import { formatKeyLabel, parseKey } from '@/lib/music'
-import { fetchUgTabTonality, findBestUgChordsTabUrl } from '@/lib/ultimate-guitar'
+import { fetchUgTabTonality, findBestUgChordsTabUrl } from '@/lib/ultimate-guitar-resolve'
 
 export type SongKeySource = 'redis' | 'ultimate-guitar' | 'openai' | 'gemini'
 
