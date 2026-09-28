@@ -274,7 +274,9 @@ export function MatchDashboard({
       return
     }
 
-    const best = findBestVocalFit(range, melody)
+    // Fit to the comfortable range so calibration doesn't sit an octave too low
+    // just to use strained notes.
+    const best = findBestVocalFit(comfortable, melody)
     setSelectedKey(transposeKey(baseKey, best.shift))
     setOctaveShift(best.octaveShift)
     setVoiceCalibrated(true)

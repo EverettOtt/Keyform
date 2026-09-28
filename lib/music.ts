@@ -394,19 +394,13 @@ export function decomposeVocalTranspose(total: number): { shift: number; octaveS
  * Find the transposition that best fits `melody` into `user` range.
  * Searches every key+octave combo the UI can reach.
  *
- * - Melody shorter than the voice: center it in the middle of the range.
- * - Melody wider than the voice: minimize spill, balance high/low overflow,
- *   and prefer a slightly lower register so we don't sit an octave too high.
+ * Prefers a full fit centered in the voice. When two octaves both fit,
+ * keep the higher one — singers reported the old low-bias as “an octave too low.”
  */
 export function findBestVocalFit(user: VocalRange, melody: VocalRange): BestVocalFit {
-  const userSpan = user.high - user.low
+  const userSpan = Math.max(user.high - user.low, 1)
   const userMid = user.low + userSpan / 2
   const melodyCenter = (melody.low + melody.high) / 2
-  const melodySpan = melody.high - melody.low
-  const widerThanVoice = melodySpan > userSpan
-  // Wide songs: slightly below mid so we don't pick the high octave.
-  // Short songs: true middle of the comfortable range.
-  const targetCenter = widerThanVoice ? user.low + userSpan * 0.42 : userMid
 
   let best: { score: number; shift: number; octaveShift: number } | null = null
 
@@ -421,22 +415,23 @@ export function findBestVocalFit(user: VocalRange, melody: VocalRange): BestVoca
       const sumOverflow = overflowLow + overflowHigh
       const imbalance = Math.abs(overflowLow - overflowHigh)
       const songCenter = (sungLow + sungHigh) / 2
-      const centerDist = Math.abs(songCenter - targetCenter)
-      const idealDist = Math.abs(total - Math.round(targetCenter - melodyCenter))
+      const centerDist = Math.abs(songCenter - userMid)
+      const idealDist = Math.abs(total - Math.round(userMid - melodyCenter))
 
       // 1) Minimize worst-end overflow
-      // 2) Balance low vs high spill (wide songs)
-      // 3) Minimize total spill
-      // 4) Sit on target center — mid-range for short melodies
-      // 5) Wide songs only: prefer lower octave when otherwise equal
+      // 2) Balance / total spill
+      // 3) Sit near the middle of the voice
+      // 4) Prefer smaller |octave| moves, then smaller |key| moves
+      // 5) Tiny nudge toward higher placements when otherwise tied (avoid habitual -1 octave)
       const score =
         maxOverflow * 1_000_000_000 +
         imbalance * 10_000_000 +
         sumOverflow * 100_000 +
         centerDist * 10_000 +
         idealDist * 100 +
-        (widerThanVoice ? total * 40 : Math.abs(total) * 0.5) +
-        Math.abs(shift) * 0.05
+        Math.abs(octaveShift) * 80 +
+        Math.abs(shift) * 0.05 -
+        octaveShift * 2
 
       if (!best || score < best.score) {
         best = { score, shift, octaveShift }
@@ -444,8 +439,17 @@ export function findBestVocalFit(user: VocalRange, melody: VocalRange): BestVoca
     }
   }
 
-  const shift = best?.shift ?? 0
-  const octaveShift = best?.octaveShift ?? 0
+  let shift = best?.shift ?? 0
+  let octaveShift = best?.octaveShift ?? 0
+
+  // If a higher octave still fully fits, prefer it — calibration was often one too low.
+  while (
+    octaveShift < OCTAVE_SHIFT_MAX &&
+    melodyFitsUser(user, melody, shift, octaveShift + 1)
+  ) {
+    octaveShift += 1
+  }
+
   const applied = shift + octaveShift * 12
   const sung = { low: melody.low + applied, high: melody.high + applied }
   const overflowLow = Math.max(0, user.low - sung.low)
@@ -460,4 +464,16 @@ export function findBestVocalFit(user: VocalRange, melody: VocalRange): BestVoca
     overflowHigh,
     fits: overflowLow === 0 && overflowHigh === 0,
   }
+}
+
+function melodyFitsUser(
+  user: VocalRange,
+  melody: VocalRange,
+  shift: number,
+  octaveShift: number,
+) {
+  const total = shift + octaveShift * 12
+  const sungLow = melody.low + total
+  const sungHigh = melody.high + total
+  return sungLow >= user.low && sungHigh <= user.high
 }
