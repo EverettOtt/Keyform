@@ -2,7 +2,7 @@
 
 import { useEffect, useId, useState } from 'react'
 import { createPortal } from 'react-dom'
-import { Info, Music2, X } from 'lucide-react'
+import { Info, X } from 'lucide-react'
 import { cn } from '@/lib/utils'
 
 type HeaderProps = {
@@ -16,19 +16,27 @@ export function Header({ step, isCalibrating }: HeaderProps) {
   return (
     <>
       <header className="sticky top-0 z-30 w-full bg-background/80 backdrop-blur-xl">
-        <div className="mx-auto flex h-16 w-full max-w-md items-center justify-between gap-3 px-4 md:max-w-2xl lg:max-w-4xl">
-          <div className="flex items-center gap-2.5">
-            <div className="flex size-9 items-center justify-center rounded-full bg-primary text-primary-foreground">
-              <Music2 className="size-5" aria-hidden="true" />
-            </div>
-            <span className="text-lg font-semibold tracking-tight">Keyform</span>
+        <div className="mx-auto flex h-[4.25rem] w-full max-w-md items-center justify-between gap-3 px-4 md:max-w-2xl lg:max-w-4xl">
+          <div className="flex min-w-0 items-center gap-2.5">
+            {/* eslint-disable-next-line @next/next/no-img-element */}
+            <img
+              src="/keyform-mark.png"
+              alt=""
+              width={40}
+              height={40}
+              className="relative -top-1 size-10 shrink-0 object-contain"
+              aria-hidden="true"
+            />
+            <span className="truncate text-[1.75rem] font-bold leading-none tracking-tight sm:text-[2rem]">
+              Keyform
+            </span>
             <button
               type="button"
               onClick={() => setAboutOpen(true)}
-              className="inline-flex size-7 items-center justify-center rounded-full text-muted-foreground transition-colors hover:bg-white/10 hover:text-foreground focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary"
+              className="inline-flex size-8 shrink-0 items-center justify-center self-center rounded-full text-muted-foreground transition-colors hover:bg-white/10 hover:text-foreground focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary"
               aria-label="About Keyform"
             >
-              <Info className="size-4" aria-hidden="true" />
+              <Info className="size-5" aria-hidden="true" />
             </button>
           </div>
           {isCalibrating ? <ProgressDots step={step} /> : null}
@@ -107,8 +115,17 @@ function AboutDialog({ onClose }: { onClose: () => void }) {
 
         <div className="overflow-y-auto px-6 pb-8 pt-1 sm:px-8 sm:pb-10">
           <div className="text-center">
-            <p id={titleId} className="text-2xl font-semibold tracking-[0.18em] text-foreground">
-              KEYFORM
+            {/* eslint-disable-next-line @next/next/no-img-element */}
+            <img
+              src="/keyform-mark.png"
+              alt=""
+              width={72}
+              height={72}
+              className="mx-auto size-[4.5rem] object-contain"
+              aria-hidden="true"
+            />
+            <p id={titleId} className="mt-4 text-3xl font-bold tracking-tight text-foreground sm:text-4xl">
+              Keyform
             </p>
             <p className="mt-2 text-sm font-medium text-primary">For Guitarists &amp; Singers</p>
             <p className="mx-auto mt-4 max-w-sm text-sm leading-relaxed text-muted-foreground">
