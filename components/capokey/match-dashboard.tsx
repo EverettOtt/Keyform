@@ -148,7 +148,12 @@ export function MatchDashboard({
     setEditingKey(false)
     setCorrectError(null)
 
-    fetch(`/api/key?slug=${encodeURIComponent(slug)}`)
+    const params = new URLSearchParams({
+      slug,
+      artist: track.artistName,
+      title: track.trackName,
+    })
+    fetch(`/api/key?${params.toString()}`)
       .then(async (res) => {
         if (!res.ok) throw new Error('Key lookup failed')
         return res.json() as Promise<{ found?: boolean; key?: string | null }>
@@ -368,7 +373,7 @@ export function MatchDashboard({
       {keyStatus === 'loading' && (
         <div className={cn(glass, 'flex items-center justify-center gap-2 p-8 text-sm text-muted-foreground')}>
           <Loader2 className="size-4 animate-spin text-primary" aria-hidden="true" />
-          Looking up the crowd-sourced key…
+          Looking up the song key…
         </div>
       )}
 
@@ -490,8 +495,9 @@ export function MatchDashboard({
 
           <p className="flex items-start gap-2 px-1 text-xs leading-relaxed text-muted-foreground">
             <Info className="mt-0.5 size-3.5 shrink-0" aria-hidden="true" />
-            Original key is crowdsourced — flag it if it&apos;s wrong so everyone gets the fix. Melody range follows
-            the song key. Use Play in key and Octave to transpose — Ultimate Guitar instructions update instantly.
+            Original key is auto-filled from the chord sheet (or saved by the community) — flag it if it&apos;s wrong
+            so everyone gets the fix. Melody range follows the song key. Use Play in key and Octave to transpose —
+            Ultimate Guitar instructions update instantly.
           </p>
         </>
       )}

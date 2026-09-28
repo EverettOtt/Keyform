@@ -74,49 +74,99 @@ function pickBestChordsTab(
   return pool[0]?.tab_url ?? null
 }
 
-/**
- * Resolve the best free Ultimate Guitar chords tab for artist + song.
- * UG "Official" search hits are Pro paywalls, so we open the top-rated
- * community Chords sheet (the usable “main” version for transpose).
- */
-export async function resolveUgChordsTabUrl(artist: string, song: string): Promise<string> {
-  const fallback = getUgSearchUrl(artist, song)
+const UG_FETCH_HEADERS = {
+  Accept: 'text/html,application/xhtml+xml',
+  'User-Agent':
+    'Mozilla/5.0 (compatible; CapoKey/1.0; +https://github.com/capokey) AppleWebKit/537.36',
+} as const
+
+function decodeUgJsStore(html: string): unknown | null {
+  const storeMatch = html.match(/class="js-store"[^>]*data-content="([^"]+)"/)
+  if (!storeMatch?.[1]) return null
+
+  const decoded = storeMatch[1]
+    .replace(/&quot;/g, '"')
+    .replace(/&#039;/g, "'")
+    .replace(/&amp;/g, '&')
+    .replace(/&lt;/g, '<')
+    .replace(/&gt;/g, '>')
+
+  try {
+    return JSON.parse(decoded) as unknown
+  } catch {
+    return null
+  }
+}
+
+/** Best free chords tab URL, or null when search can't resolve a real tab page. */
+export async function findBestUgChordsTabUrl(
+  artist: string,
+  song: string,
+): Promise<string | null> {
   const query = `${artist} ${song}`.trim()
-  if (!query) return fallback
+  if (!query) return null
 
   try {
     const searchUrl = `https://www.ultimate-guitar.com/search.php?search_type=title&value=${encodeURIComponent(query)}`
     const response = await fetch(searchUrl, {
-      headers: {
-        Accept: 'text/html,application/xhtml+xml',
-        'User-Agent':
-          'Mozilla/5.0 (compatible; CapoKey/1.0; +https://github.com/capokey) AppleWebKit/537.36',
-      },
+      headers: UG_FETCH_HEADERS,
       next: { revalidate: 86_400 },
     })
+    if (!response.ok) return null
 
-    if (!response.ok) return fallback
-
-    const html = await response.text()
-    const storeMatch = html.match(/class="js-store"[^>]*data-content="([^"]+)"/)
-    if (!storeMatch?.[1]) return fallback
-
-    const decoded = storeMatch[1]
-      .replace(/&quot;/g, '"')
-      .replace(/&#039;/g, "'")
-      .replace(/&amp;/g, '&')
-      .replace(/&lt;/g, '<')
-      .replace(/&gt;/g, '>')
-
-    const data = JSON.parse(decoded) as {
+    const data = decodeUgJsStore(await response.text()) as {
       store?: { page?: { data?: { results?: UgSearchResult[] } } }
-    }
-    const results = data.store?.page?.data?.results
-    if (!Array.isArray(results) || results.length === 0) return fallback
+    } | null
+    const results = data?.store?.page?.data?.results
+    if (!Array.isArray(results) || results.length === 0) return null
 
-    return pickBestChordsTab(results, artist, song) ?? fallback
+    return pickBestChordsTab(results, artist, song)
   } catch {
-    return fallback
+    return null
+  }
+}
+
+/**
+ * Resolve the best free Ultimate Guitar chords tab for artist + song.
+ * Falls back to a Chords-filtered search URL when no tab is found.
+ */
+export async function resolveUgChordsTabUrl(artist: string, song: string): Promise<string> {
+  return (await findBestUgChordsTabUrl(artist, song)) ?? getUgSearchUrl(artist, song)
+}
+
+/**
+ * Read the published tonality from a UG chords tab page (e.g. "F#m", "G").
+ */
+export async function fetchUgTabTonality(tabUrl: string): Promise<string | null> {
+  if (!tabUrl.includes('tabs.ultimate-guitar.com/tab/')) return null
+
+  try {
+    const response = await fetch(tabUrl, {
+      headers: UG_FETCH_HEADERS,
+      next: { revalidate: 86_400 },
+      signal: AbortSignal.timeout(12_000),
+    })
+    if (!response.ok) return null
+
+    const data = decodeUgJsStore(await response.text()) as {
+      store?: {
+        page?: {
+          data?: {
+            tab?: { tonality_name?: string }
+            tab_view?: { meta?: { tonality?: string } }
+          }
+        }
+      }
+    } | null
+
+    const page = data?.store?.page?.data
+    const raw =
+      page?.tab_view?.meta?.tonality?.trim() ||
+      page?.tab?.tonality_name?.trim() ||
+      ''
+    return raw || null
+  } catch {
+    return null
   }
 }
 
