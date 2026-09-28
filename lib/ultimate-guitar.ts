@@ -1,18 +1,123 @@
 import { formatKeyLabel, type SongKey } from '@/lib/music'
 
+type UgSearchResult = {
+  artist_name?: string
+  song_name?: string
+  type?: string | null
+  marketing_type?: string | null
+  tab_url?: string
+  votes?: number | null
+  rating?: number | null
+  version?: number | null
+  common_version?: number | null
+}
+
+function normalizeName(value: string): string {
+  return value
+    .toLowerCase()
+    .normalize('NFKD')
+    .replace(/[\u0300-\u036f]/g, '')
+    .replace(/&/g, ' and ')
+    .replace(/[^a-z0-9]+/g, ' ')
+    .trim()
+}
+
+/** Filtered UG search (Chords) — used when we can't resolve a direct tab. */
+export function getUgSearchUrl(artist: string, song: string): string {
+  const value = encodeURIComponent(`${artist} ${song}`.trim())
+  return `https://www.ultimate-guitar.com/search.php?search_type=title&value=${value}&type%5B0%5D=Chords`
+}
+
 /**
- * Ultimate Guitar search / affiliate link helper.
- * Returns a direct UG search URL until Awin affiliate wrapping is approved.
+ * Client link that hits our resolver so users land on the best chords tab
+ * instead of UG's search box. Affiliate wrapping can still wrap this later.
  */
 export function getUGAffiliateLink(artist: string, song: string): string {
-  const baseUrl = `https://www.ultimate-guitar.com/search.php?search_type=title&value=${encodeURIComponent(
-    `${artist} ${song}`,
-  )}`
+  const params = new URLSearchParams({ artist, title: song })
+  return `/api/ug-tab?${params.toString()}`
+}
 
-  // TODO: Wrap with Awin affiliate link when approved (Publisher ID: YOUR_AWIN_ID)
-  // return `https://www.awin1.com/cread.php?awinmid=123984&awinaffid=YOUR_AWIN_ID&ued=${encodeURIComponent(baseUrl)}`;
+function namesMatch(a: string, b: string): boolean {
+  if (!a || !b) return false
+  return a === b || a.includes(b) || b.includes(a)
+}
 
-  return baseUrl
+function pickBestChordsTab(
+  results: UgSearchResult[],
+  artist: string,
+  song: string,
+): string | null {
+  const wantArtist = normalizeName(artist)
+  const wantSong = normalizeName(song)
+
+  const chords = results.filter((item) => {
+    if (item.type !== 'Chords' || !item.tab_url) return false
+    if (!item.tab_url.includes('tabs.ultimate-guitar.com/tab/')) return false
+    return namesMatch(normalizeName(item.artist_name ?? ''), wantArtist)
+  })
+
+  const exactSong = chords.filter((item) => normalizeName(item.song_name ?? '') === wantSong)
+  const looseSong = chords.filter((item) =>
+    namesMatch(normalizeName(item.song_name ?? ''), wantSong),
+  )
+  const pool = exactSong.length > 0 ? exactSong : looseSong
+  if (pool.length === 0) return null
+
+  pool.sort((a, b) => {
+    const common = (b.common_version ?? 0) - (a.common_version ?? 0)
+    if (common !== 0) return common
+    const votes = (b.votes ?? 0) - (a.votes ?? 0)
+    if (votes !== 0) return votes
+    return (b.rating ?? 0) - (a.rating ?? 0)
+  })
+
+  return pool[0]?.tab_url ?? null
+}
+
+/**
+ * Resolve the best free Ultimate Guitar chords tab for artist + song.
+ * UG "Official" search hits are Pro paywalls, so we open the top-rated
+ * community Chords sheet (the usable “main” version for transpose).
+ */
+export async function resolveUgChordsTabUrl(artist: string, song: string): Promise<string> {
+  const fallback = getUgSearchUrl(artist, song)
+  const query = `${artist} ${song}`.trim()
+  if (!query) return fallback
+
+  try {
+    const searchUrl = `https://www.ultimate-guitar.com/search.php?search_type=title&value=${encodeURIComponent(query)}`
+    const response = await fetch(searchUrl, {
+      headers: {
+        Accept: 'text/html,application/xhtml+xml',
+        'User-Agent':
+          'Mozilla/5.0 (compatible; CapoKey/1.0; +https://github.com/capokey) AppleWebKit/537.36',
+      },
+      next: { revalidate: 86_400 },
+    })
+
+    if (!response.ok) return fallback
+
+    const html = await response.text()
+    const storeMatch = html.match(/class="js-store"[^>]*data-content="([^"]+)"/)
+    if (!storeMatch?.[1]) return fallback
+
+    const decoded = storeMatch[1]
+      .replace(/&quot;/g, '"')
+      .replace(/&#039;/g, "'")
+      .replace(/&amp;/g, '&')
+      .replace(/&lt;/g, '<')
+      .replace(/&gt;/g, '>')
+
+    const data = JSON.parse(decoded) as {
+      store?: { page?: { data?: { results?: UgSearchResult[] } } }
+    }
+    const results = data.store?.page?.data?.results
+    if (!Array.isArray(results) || results.length === 0) return fallback
+
+    return pickBestChordsTab(results, artist, song) ?? fallback
+  } catch {
+    return fallback
+  }
 }
 
 /**
