@@ -16,15 +16,15 @@ export function Header({ step, isCalibrating }: HeaderProps) {
   return (
     <>
       <header className="sticky top-0 z-30 w-full bg-background/80 backdrop-blur-xl">
-        <div className="mx-auto flex h-[4.25rem] w-full max-w-md items-center justify-between gap-3 px-4 md:max-w-2xl lg:max-w-4xl">
-          <div className="flex min-w-0 items-center gap-2.5">
+        <div className="mx-auto flex h-[4.25rem] w-full max-w-md items-center justify-between gap-3 overflow-visible px-4 md:max-w-2xl lg:max-w-4xl">
+          <div className="flex min-w-0 items-center gap-2.5 overflow-visible">
             {/* eslint-disable-next-line @next/next/no-img-element */}
             <img
               src="/keyform-mark.png"
               alt=""
-              width={40}
-              height={40}
-              className="relative -top-1 size-10 shrink-0 object-contain"
+              width={44}
+              height={44}
+              className="relative -top-1 size-11 shrink-0 object-contain"
               aria-hidden="true"
             />
             <span className="truncate text-[1.75rem] font-bold leading-none tracking-tight sm:text-[2rem]">
